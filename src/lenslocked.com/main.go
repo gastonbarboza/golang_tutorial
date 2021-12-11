@@ -2,40 +2,34 @@ package main
 
 import (
 	"net/http"
-	"html/template"
+	
+	"lenslocked.com/views"
 	
 	"github.com/gorilla/mux"
 )
 
-var homeTemplate *template.Template
-var contactTemplate *template.Template
+var homeView *views.View
+var contactView *views.View
 
 func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	if err := homeTemplate.Execute(w, nil); err != nil {
-		panic(err)
-	}
+	must(homeView.Render(w,nil))
 }
 
 func contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	if err := contactTemplate.Execute(w, nil); err != nil {
+	must(contactView.Render(w,nil))
+}
+
+func must(err error) {
+	if err != nil {
 		panic(err)
 	}
 }
 
-func main() {
-	var err error
-	
-	homeTemplate, err = template.ParseFiles("views/home.gohtml","views/layouts/footer.gohtml","views/layouts/header.gohtml")
-	if err != nil{
-		panic(err)
-	}
-	
-	contactTemplate, err = template.ParseFiles("views/contact.gohtml","views/layouts/footer.gohtml","views/layouts/header.gohtml")
-	if err != nil{
-		panic(err)
-	}
+func main() {	
+	homeView = views.NewView("bootstrap","views/home.gohtml")
+	contactView = views.NewView("bootstrap","views/contact.gohtml")
 	
 	router := mux.NewRouter()
 	
