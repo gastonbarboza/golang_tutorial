@@ -4,20 +4,20 @@ import (
 	"net/http"
 	"html/template"
 	
-	"github.com/julienschmidt/httprouter"
+	"github.com/gorilla/mux"
 )
 
 var homeTemplate *template.Template
 var contactTemplate *template.Template
 
-func home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	if err := homeTemplate.Execute(w, nil); err != nil {
 		panic(err)
 	}
 }
 
-func contact(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	if err := contactTemplate.Execute(w, nil); err != nil {
 		panic(err)
@@ -37,10 +37,10 @@ func main() {
 		panic(err)
 	}
 	
-	router := httprouter.New()
+	router := mux.NewRouter()
 	
-	router.GET("/", home)
-	router.GET("/contact", contact)
+	router.HandleFunc("/", home)
+	router.HandleFunc("/contact", contact)
 
 	http.ListenAndServe(":8501", router)
 }
