@@ -4,6 +4,7 @@ import (
 	"net/http"
 	
 	"lenslocked.com/views"
+	"lenslocked.com/controllers"
 	
 	"github.com/gorilla/mux"
 )
@@ -31,10 +32,14 @@ func main() {
 	homeView = views.NewView("bootstrap","views/home.gohtml")
 	contactView = views.NewView("bootstrap","views/contact.gohtml")
 	
+	usersC := controllers.NewUsers()
+	
 	router := mux.NewRouter()
 	
 	router.HandleFunc("/", home)
 	router.HandleFunc("/contact", contact)
+	router.HandleFunc("/signup", usersC.New).Methods("GET")
+	router.HandleFunc("/signup", usersC.Create).Methods("POST")
 
 	http.ListenAndServe(":8501", router)
 }

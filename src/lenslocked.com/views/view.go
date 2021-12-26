@@ -6,6 +6,7 @@ import (
 	"net/http"
 )
 
+//Function to read all .gohtml files in layouts directory
 var (
 	LayoutDir   string = "views/layouts/"
 	TemplateExt string = ".gohtml"
@@ -19,6 +20,16 @@ func layoutFiles() []string {
 	return files
 }
 
+//Interface "View" for rendering pages
+type View struct {
+	Template *template.Template
+	Layout   string
+}
+
+func (v *View) Render(w http.ResponseWriter,data interface{}) error {
+	return v.Template.ExecuteTemplate(w,v.Layout,data)
+}
+
 func NewView(layout string, files ...string) *View {
 	files = append(files,layoutFiles()...)
 	t,err := template.ParseFiles(files...)
@@ -30,13 +41,4 @@ func NewView(layout string, files ...string) *View {
 		Template: t,
 		Layout: layout,
 	}
-}
-
-type View struct {
-	Template *template.Template
-	Layout   string
-}
-
-func (v *View) Render(w http.ResponseWriter,data interface{}) error {
-	return v.Template.ExecuteTemplate(w,v.Layout,data)
 }
