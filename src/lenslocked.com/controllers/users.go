@@ -2,12 +2,12 @@ package controllers
 import (
 	"fmt"
 	"net/http"
-	
+
 	"github.com/gorilla/schema"
-	
+
 	"lenslocked.com/views"
 )
-	
+
 
 type Users struct {
 	NewView *views.View
@@ -20,7 +20,7 @@ type SignupForm struct {
 
 func NewUsers() *Users {
 	return &Users{
-		NewView: views.NewView("bootstrap", "views/users/new.gohtml"),
+		NewView: views.NewView("bootstrap", "users/new"),
 	}
 }
 
