@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"lenslocked.com/controllers"
@@ -9,6 +10,7 @@ import (
 )
 
 func main() {
+	cfg := DefaultConfig()
 	staticC := controllers.NewStatic()
 	usersC := controllers.NewUsers()
 
@@ -19,5 +21,5 @@ func main() {
 	router.HandleFunc("/signup", usersC.New).Methods("GET")
 	router.HandleFunc("/signup", usersC.Create).Methods("POST")
 
-	http.ListenAndServe(":8501", router)
+	http.ListenAndServe(fmt.Sprintf(":%d",cfg.Port), router)
 }
