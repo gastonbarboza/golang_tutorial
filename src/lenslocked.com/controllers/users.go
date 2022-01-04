@@ -12,7 +12,6 @@ import (
 
 // Users controller directs user information towards users model
 // for creation or authentication
-
 type Users struct {
 	NewView   *views.View
 	LoginView *views.View
@@ -58,7 +57,6 @@ func (u *Users) New(w http.ResponseWriter,r *http.Request) {
 
 // Create is used to process the signup form when a user enters
 // their name, email and password
-
 func (u *Users) Create(w http.ResponseWriter,r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
@@ -77,12 +75,39 @@ func (u *Users) Create(w http.ResponseWriter,r *http.Request) {
 	fmt.Fprintln(w, "User is", user)
 }
 
-// Login is used to process the login form when a user enters
-// their email and password
-
+// Login is is a handler used to process POST requests on the login form when
+// user sends their email and password
 func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
+	user, err := u.us.Authenticate(form.Email, form.Password)
+	if err != nil {
+		switch err {
+		case models.ErrNotFound:
+			fmt.Fprintln(w, "Invalid email address.")
+		case models.ErrInvalidPassword:
+			fmt.Fprintln(w, "Invalid password provided.")
+		default:
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	return
+	}
+	fmt.Fprintln(w,user)
+	cookie := http.Cookie{
+		Name:     "email",
+		Value:    user.Email,
+	}
+	http.SetCookie(w,&cookie)
+}
+
+// CookieTest is used to display cookies set on the current user
+func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("email")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintln(w, "Email is:", cookie.Value)
 }

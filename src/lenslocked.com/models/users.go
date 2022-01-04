@@ -9,6 +9,8 @@ import (
 	_"github.com/jinzhu/gorm/dialects/postgres"
 )
 
+// UserService wraps gorm database so underlying database manipulation
+// is not of concern for other layers.
 type UserService struct {
 	db *gorm.DB
 }
@@ -21,6 +23,7 @@ type User struct {
 	PasswordHash string `gorm:"not null"`
 }
 
+// NewUserService opens a connection to the database.
 func NewUserService(connectionInfo string) (*UserService, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	
@@ -34,6 +37,7 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 	}, nil
 }
 
+// Close closes the connection to the database.
 func (us *UserService) Close() error {
 	return us.db.Close()
 }
@@ -50,6 +54,7 @@ func (us *UserService) Create(user *User) error {
 	return us.db.Create(user).Error
 }
 
+// We define several errors that may arise user resource manipulation
 var (
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
@@ -58,8 +63,13 @@ var (
 	// ErrInvalidID is returned when an invalid ID is provided
 	// to a method like Delete.
 	ErrInvalidID = errors.New("models: ID provided was invalid")
+
+	// ErrInvalidPassword is returned when an invalid password 
+	// is used when attempting to authenticate a user
+	ErrInvalidPassword = errors.New("models: incorrect password provided")
 )
 
+// Auxiliary function that returns first result in database for a query
 func first(db *gorm.DB, dst interface{}) error {
 	err := db.First(dst).Error
 	if err == gorm.ErrRecordNotFound {
@@ -98,15 +108,41 @@ func (us *UserService) ByEmail(email string) (*User, error) {
 	return &user, err
 }
 
+// Authenticate checks validity of email and passowrd
+// If the email provided is invalid, it returns 
+//   nil, ErrNotFound
+// If the password provided is invalid, it returns
+//   nil, ErrInvalidPassword
+// If all is valid, it returns
+//   user, nil
+// Otherwise, it returns whatever error arises
+//   nil, error
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	foundUser, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(foundUser.PasswordHash),
+		[]byte(password))
+	switch err {
+	case nil:
+		return foundUser, nil
+	case bcrypt.ErrMismatchedHashAndPassword:
+		return nil, ErrInvalidPassword
+	default:
+		return nil, err
+	}
+}
+
 // Update will update the provided user with all of the data
 // in the provided user object.
-
 func (us *UserService) Update(user *User) error {
 	return us.db.Save(user).Error
 }
 
 // Delete will delete the user with the provided ID
-
 func (us *UserService) Delete(id uint) error {
 	if id == 0 {
 		return ErrInvalidID
@@ -116,7 +152,6 @@ func (us *UserService) Delete(id uint) error {
 }
 
 // AutoMigrate will attempt to automatically migrate the users table
-
 func (us *UserService) AutoMigrate() error {
 	if err := us.db.AutoMigrate(&User{}).Error; err != nil {
 		return err

@@ -36,6 +36,7 @@ func main() {
 	router.HandleFunc("/signup", usersC.Create).Methods("POST")
 	router.Handle("/login", usersC.LoginView).Methods("GET")
 	router.HandleFunc("/login",usersC.Login).Methods("POST")
+	router.HandleFunc("/cookietest",usersC.CookieTest).Methods("GET")
 
 	http.ListenAndServe(fmt.Sprintf(":%d",cfg.Port), router)
 }
