@@ -28,9 +28,9 @@ type UserDB interface {
 	Delete(id uint) error
 
 	//Utility methods
-	Close() error
-	AutoMigrate() error
-	DestructiveReset() error
+//	Close() error
+//	AutoMigrate() error
+//	DestructiveReset() error
 }
 // We export the interface so documentation is exported, but we will not 
 // export the implementation.
@@ -53,43 +53,20 @@ type User struct {
 	PasswordHash string `gorm:"not null"`
 }
 
-// newUserGorm instatiates a userGorm
-func newUserGorm(connectionInfo string) (*userGorm, error) {
-	db, err := gorm.Open("postgres", connectionInfo)
-	if err != nil {
-		return nil, err
-	}
-	db.LogMode(true)
-	return &userGorm {
-		db: db,
-	}, nil
-}
-
 // UserService exports the UserDB implementation and implements non-database
 // related services.
 type UserService struct {
 	UserDB
 }
 
-func NewUserService(connectionInfo string) (*UserService, error) {
-	ug, err := newUserGorm(connectionInfo)
-	
-	if err != nil {
-		return nil, err
-	}
+func NewUserService(db *gorm.DB) *UserService {
+	ug := &userGorm{db}
 	
 	return &UserService {
 		UserDB: ug,
-	}, nil
+	}
 }
 
-// Close closes the connection to the database.
-func (ug *userGorm) Close() error {
-	return ug.db.Close()
-}
-
-// Create will create the provided user and backfill data
-// like the ID, CreatedAt, and UpdatedAt fields.
 func (ug *userGorm) Create(user *User) error {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -199,19 +176,3 @@ func (ug *userGorm) Delete(id uint) error {
 	return ug.db.Delete(&user).Error
 }
 
-// AutoMigrate will attempt to automatically migrate the users table
-func (ug *userGorm) AutoMigrate() error {
-	if err := ug.db.AutoMigrate(&User{}).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-//DestructiveReset drops the user table and rebuilds it
-func (ug *userGorm) DestructiveReset() error {
-	err := ug.db.DropTableIfExists(&User{}).Error
-	if err != nil {
-		return err
-	}
-	return ug.AutoMigrate()
-}

@@ -16,16 +16,16 @@ func main() {
 	psqlInfo := DefaultPostgresConfig().ConnectionInfo()
 	
 	// Connect to database
-	us, err := models.NewUserService(psqlInfo)
+	services, err := models.NewServices(psqlInfo)
 	if err != nil {
 		panic(err)
 	}
-	defer us.Close()
-	us.AutoMigrate()
+	defer services.Close()
+	services.AutoMigrate()
 
 	// Create controllers
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(us)
+	usersC := controllers.NewUsers(services.User)
 	
 	//Routing code
 	router := mux.NewRouter()
