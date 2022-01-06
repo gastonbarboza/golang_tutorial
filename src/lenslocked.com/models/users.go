@@ -35,12 +35,6 @@ type UserDB interface {
 // We export the interface so documentation is exported, but we will not 
 // export the implementation.
 
-// userValidator is a validation layer that validates and normalizes data
-// before passing it onto the embedded UserDB
-type userValidator struct {
-	UserDB
-}
-
 // userGorm is the database interaction layer
 // implementing the UserDB interface.
 type userGorm struct {
@@ -85,9 +79,7 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 	}
 	
 	return &UserService {
-		UserDB: userValidator {
-			UserDB: ug,
-		},
+		UserDB: ug,
 	}, nil
 }
 
@@ -142,19 +134,15 @@ func first(db *gorm.DB, dst interface{}) error {
 // Any error but ErrNot Found should result in a 500 error.
 func (ug *userGorm) ByID(id uint) (*User, error) {
 	var user User
+	if id <= 0 {
+		return nil, errors.New("Invalid ID")
+	}
 	db := ug.db.Where("id = ?", id)
 	err := first(db, &user)
 	if err != nil {
 		return nil, err
 	}
 	return &user, nil
-}
-
-func (uv *userValidator) ByID(id uint) (*User, error) {
-	if id <= 0 {
-		return nil, errors.New("Invalid ID")
-	}
-	return uv.UserDB.ByID(id)
 }
 
 // ByEmail looks up a user with the given email address and
