@@ -24,7 +24,7 @@ func DefaultPostgresConfig() PostgresConfig {
 		Port:     5432,
 		User:     "postgres",
 		Password: "password-here",
-		Name:     "lenslocked_dev",
+		Name:     "gastb",
 	}
 }
 

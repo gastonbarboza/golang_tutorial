@@ -1,4 +1,4 @@
-module lenslocked.com
+module gastb.ar
 
 go 1.17
 

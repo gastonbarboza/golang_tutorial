@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"lenslocked.com/controllers"
-	"lenslocked.com/models"
+	"gastb.ar/controllers"
+	"gastb.ar/models"
 
 	"github.com/gorilla/mux"
 )
@@ -32,11 +32,12 @@ func main() {
 
 	router.Handle("/", staticC.Home).Methods("GET")
 	router.Handle("/contact", staticC.Contact).Methods("GET")
-	router.HandleFunc("/signup", usersC.New).Methods("GET")
-	router.HandleFunc("/signup", usersC.Create).Methods("POST")
+	router.Handle("/signup", usersC.SignupView).Methods("GET")
 	router.Handle("/login", usersC.LoginView).Methods("GET")
-	router.HandleFunc("/login",usersC.Login).Methods("POST")
 	router.HandleFunc("/cookietest",usersC.CookieTest).Methods("GET")
+	
+	router.HandleFunc("/signup", usersC.Create).Methods("POST")
+	router.HandleFunc("/login",usersC.Login).Methods("POST")
 
 	http.ListenAndServe(fmt.Sprintf(":%d",cfg.Port), router)
 }

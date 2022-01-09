@@ -6,23 +6,24 @@ import (
 
 	"github.com/gorilla/schema"
 
-	"lenslocked.com/views"
-	"lenslocked.com/models"
+	"gastb.ar/views"
+	"gastb.ar/models"
 )
 
-// Users controller directs user information towards users model
-// for creation or authentication
-type Users struct {
-	NewView   *views.View
-	LoginView *views.View
-	us        *models.UserService
+// UsersController :::viewing of signup and login pages and storage and
+// retrieval of information from user database. Users 
+
+type UsersController struct {
+	SignupView *views.View
+	LoginView  *views.View
+	us         *models.UserService
 }
 
-func NewUsers(us *models.UserService) *Users {
-	return &Users{
-		NewView:   views.NewView("bootstrap", "users/new"),
-		LoginView: views.NewView("bootstrap", "users/login"),
-		us:        us,
+func NewUsers(us *models.UserService) *UsersController {
+	return &UsersController {
+		SignupView: views.NewView("bootstrap", "users/new"),
+		LoginView:  views.NewView("bootstrap", "users/login"),
+		us:         us,
 	}
 }
 
@@ -48,16 +49,9 @@ func parseForm(r *http.Request, dst interface{}) error {
 	return nil
 }
 
-// New is a handler that renders the signup page
-func (u *Users) New(w http.ResponseWriter,r *http.Request) {
-	if err := u.NewView.Render(w,nil);err != nil {
-		panic(err)
-	}
-}
-
-// Create is used to process the signup form when a user enters
-// their name, email and password
-func (u *Users) Create(w http.ResponseWriter,r *http.Request) {
+// Create is a handlefunc used to process POST requests on the signup form 
+// when a user enters their name, email and password
+func (u *UsersController) Create(w http.ResponseWriter,r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
@@ -77,7 +71,7 @@ func (u *Users) Create(w http.ResponseWriter,r *http.Request) {
 
 // Login is is a handler used to process POST requests on the login form when
 // user sends their email and password
-func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
+func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
@@ -94,16 +88,17 @@ func (u *Users) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	return
 	}
-	fmt.Fprintln(w,user)
-	cookie := http.Cookie{
+	cookie := http.Cookie {
 		Name:     "email",
 		Value:    user.Email,
+		HttpOnly: true,
 	}
 	http.SetCookie(w,&cookie)
+	fmt.Fprintln(w,user)
 }
 
 // CookieTest is used to display cookies set on the current user
-func (u *Users) CookieTest(w http.ResponseWriter, r *http.Request) {
+func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("email")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

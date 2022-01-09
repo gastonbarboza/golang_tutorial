@@ -1,6 +1,6 @@
 package controllers
 
-import "lenslocked.com/views"
+import "gastb.ar/views"
 
 func NewStatic() *Static {
 	return &Static{
