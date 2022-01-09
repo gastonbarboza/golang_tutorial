@@ -125,11 +125,14 @@ func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("remember_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		fmt.Fprintln(w, "You do not have a cookie :(")
 		return
 	}
-	fmt.Fprintln(w, "You have a cookie!")
-	fmt.Fprintln(w, cookie.Value)
+	user, err := u.us.ByToken(cookie.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	return
+	}
+	fmt.Fprintln(w, user)
 }
 
 
