@@ -17,15 +17,15 @@ import (
 type UsersController struct {
 	SignupView *views.View
 	LoginView  *views.View
-	us         *models.UserService
+	*models.UserService
 }
 
-// NewUsers creates a new controller on top of an initialized UserService.
-func NewUsers(us *models.UserService) *UsersController {
+// NewUserController creates a controller on top of an initialized UserService.
+func NewUserController(us *models.UserService) *UsersController {
 	return &UsersController {
-		SignupView: views.NewView("bootstrap", "users/new"),
-		LoginView:  views.NewView("bootstrap", "users/login"),
-		us:         us,
+		SignupView:  views.NewView("bootstrap", "users/new"),
+		LoginView:   views.NewView("bootstrap", "users/login"),
+		UserService: us,
 	}
 }
 
@@ -55,7 +55,7 @@ func parseForm(r *http.Request, dst interface{}) error {
 
 // Signup is a handlefunc used to process POST requests on the signup form 
 // when a user enters their name, email and password
-func (u *UsersController) Signup(w http.ResponseWriter,r *http.Request) {
+func (uC *UsersController) Signup(w http.ResponseWriter,r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
@@ -66,7 +66,7 @@ func (u *UsersController) Signup(w http.ResponseWriter,r *http.Request) {
 		Password: form.Password,
 	}
 
-	if err := u.us.Create(user); err != nil{
+	if err := uC.UserService.Create(user); err != nil{
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -76,12 +76,12 @@ func (u *UsersController) Signup(w http.ResponseWriter,r *http.Request) {
 
 // Login is is a handler used to process POST requests on the login form when
 // user sends their email and password
-func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
+func (uC *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
-	user, err := u.us.Authenticate(form.Email, form.Password)
+	user, err := uC.UserService.Authenticate(form.Email, form.Password)
 	if err != nil {
 		switch err {
 		case models.ErrNotFound:
@@ -93,20 +93,20 @@ func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	return
 	}
-	u.signIn(w, user)
+	uC.signIn(w, user)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 // signIn is a method that creates a token, sets it to the user, and
 // sets a Cookie header on the ResponseWriter. It returns an error if 
 // setting the user was not successful, or generating the token failed
-func (u *UsersController) signIn(w http.ResponseWriter, user *models.User) error {
+func (uC *UsersController) signIn(w http.ResponseWriter, user *models.User) error {
 	token, err := rand.RememberToken()
 	if err != nil {
 		return err
 	}
 	user.Token = token
-	err = u.us.Update(user)
+	err = uC.UserService.Update(user)
 	if err != nil {
 		return err
 	}
@@ -121,13 +121,13 @@ func (u *UsersController) signIn(w http.ResponseWriter, user *models.User) error
 }
 
 // CookieTest is used to display cookies set on the current user
-func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
+func (uC *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("remember_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	user, err := u.us.ByToken(cookie.Value)
+	user, err := uC.UserService.ByToken(cookie.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	return

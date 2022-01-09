@@ -4,14 +4,14 @@ import "gastb.ar/views"
 
 func NewStatic() *Static {
 	return &Static{
-		Home: views.NewView(
-			"bootstrap", "static/home"),
-		Contact: views.NewView(
-			"bootstrap", "static/contact"),
+		Home:     views.NewView(
+			  "bootstrap", "static/home"),
+		Profile:  views.NewView(
+			  "bootstrap", "static/profile"),
 		}
 	}
 
 type Static struct {
 	Home    *views.View
-	Contact *views.View
+	Profile *views.View
 }

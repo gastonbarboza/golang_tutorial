@@ -6,6 +6,7 @@ import (
 
 	"gastb.ar/controllers"
 	"gastb.ar/models"
+	"gastb.ar/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -26,20 +27,26 @@ func main() {
 
 	// Create controllers
 	staticC := controllers.NewStatic()
-	usersC := controllers.NewUsers(services.User)
+	userC := controllers.NewUserController(services.UserService)
+	requireUserMw := middleware.RequireUser {
+		UserService: services.UserService,
+	}
 	
-	//Routing code
+	// Create intermediate handlers
+	profileAuthd := requireUserMw.Apply(staticC.Profile)
+
+	// Routing code
 	router := mux.NewRouter()
 
 	router.Handle("/", staticC.Home).Methods("GET")
-	router.Handle("/contact", staticC.Contact).Methods("GET")
-	router.Handle("/signup", usersC.SignupView).Methods("GET")
-	router.Handle("/login", usersC.LoginView).Methods("GET")
+	router.Handle("/profile", profileAuthd).Methods("GET")
+	router.Handle("/signup", userC.SignupView).Methods("GET")
+	router.Handle("/login", userC.LoginView).Methods("GET")
 
-	router.HandleFunc("/cookietest",usersC.CookieTest).Methods("GET")
+	router.HandleFunc("/cookietest",userC.CookieTest).Methods("GET")
 	
-	router.HandleFunc("/signup", usersC.Signup).Methods("POST")
-	router.HandleFunc("/login",usersC.Login).Methods("POST")
+	router.HandleFunc("/signup", userC.Signup).Methods("POST")
+	router.HandleFunc("/login",userC.Login).Methods("POST")
 
 	http.ListenAndServe(fmt.Sprintf(":%d",cfg.Port), router)
 }

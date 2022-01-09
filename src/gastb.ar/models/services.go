@@ -3,8 +3,8 @@ package models
 import "github.com/jinzhu/gorm"
 
 type Services struct {
-	Stocklist StocklistService
-	User      *UserService
+	StocklistService
+	*UserService
 	db        *gorm.DB
 }
 
@@ -16,9 +16,9 @@ func NewServices(connectionInfo string, hmacSecretKey string) (*Services, error)
 	db.LogMode(true)
 
 	return &Services {
-		User:      NewUserService(db, hmacSecretKey),
-		Stocklist: &stocklistGorm{},
-		db:        db,
+		UserService:      NewUserService(db, hmacSecretKey),
+		StocklistService: &stocklistGorm{},
+		db:               db,
 	}, nil
 }
 
