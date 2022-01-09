@@ -8,7 +8,7 @@ type Services struct {
 	db        *gorm.DB
 }
 
-func NewServices(connectionInfo string) (*Services, error) {
+func NewServices(connectionInfo string, hmacSecretKey string) (*Services, error) {
 	db, err := gorm.Open("postgres", connectionInfo)
 	if err != nil { 
 		return nil, err
@@ -16,7 +16,7 @@ func NewServices(connectionInfo string) (*Services, error) {
 	db.LogMode(true)
 
 	return &Services {
-		User:      NewUserService(db),
+		User:      NewUserService(db, hmacSecretKey),
 		Stocklist: &stocklistGorm{},
 		db:        db,
 	}, nil

@@ -31,6 +31,7 @@ func DefaultPostgresConfig() PostgresConfig {
 type Config struct {
 	Port int
 	Env  string
+	HMAC string
 }
 
 func (c Config) IsProd() bool {
@@ -41,5 +42,6 @@ func DefaultConfig() Config {
 	return Config{
 		Port: 8501,
 		Env:  "dev",
+		HMAC: "secret-key-here",
 	}
 }

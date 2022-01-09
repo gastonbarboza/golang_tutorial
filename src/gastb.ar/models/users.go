@@ -3,11 +3,25 @@ package models
 import (
 	"errors"
 
+//	"gastb.ar/rand"
+	"gastb.ar/hash"
+
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jinzhu/gorm"
 	_"github.com/jinzhu/gorm/dialects/postgres"
 )
+
+// User information is coded in a User type and stored in the users database.
+type User struct {
+	gorm.Model
+	Name         string
+	Email        string `gorm:"not null;unique_index"`
+	Password     string `gorm:"-"`
+	PasswordHash string `gorm:"not null"`
+	Token        string `gorm:"-"`
+	TokenHash    string `gorm:"not null;unique_index"`
+}
 
 // UsersDB is an interface that can interact with the users database.
 //
@@ -26,11 +40,6 @@ type UserDB interface {
 	Create(user *User) error
 	Update(user *User) error
 	Delete(id uint) error
-
-	//Utility methods
-//	Close() error
-//	AutoMigrate() error
-//	DestructiveReset() error
 }
 // We export the interface so documentation is exported, but we will not 
 // export the implementation.
@@ -45,39 +54,85 @@ var _ UserDB = &userGorm{}
 // Checks to see if userGorm is correctly implemented; otherwise code
 // does not compile.
 
-type User struct {
-	gorm.Model
-	Name         string
-	Email        string `gorm:"not null;unique_index"`
-	Password     string `gorm:"-"`
-	PasswordHash string `gorm:"not null"`
-}
 
-// UserService exports the UserDB implementation and implements non-database
+// UserService wraps the UserDB implementation and implements non-database
 // related services.
 type UserService struct {
-	UserDB
+	db   UserDB
+	hmac hash.HMAC
 }
 
-func NewUserService(db *gorm.DB) *UserService {
+//
+// 1. UserService related methods and functions
+//
+
+// NewUserService instatiates a UserService on a database connection and
+// a hasher for user tokens.
+func NewUserService(db *gorm.DB, hmacSecretKey string) *UserService {
 	ug := &userGorm{db}
 	
+	hmac := hash.NewHMAC(hmacSecretKey)
+
 	return &UserService {
-		UserDB: ug,
+		db:     ug,
+		hmac:   hmac,
 	}
 }
 
-func (ug *userGorm) Create(user *User) error {
+// Create takes a user object, hashes sensitive data and passes it on to
+// the database layer.
+func (us *UserService) Create(user *User) error {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	user.PasswordHash = string(hashedBytes)
+
 	if err != nil {
 		return err
 	}
-	user.PasswordHash = string(hashedBytes)
-	user.Password = ""
-	return ug.db.Create(user).Error
+	return us.db.Create(user)
 }
 
-// We define several errors that may arise user resource manipulation
+// Update takes a user object, hashes sensitive data and passes it on to
+// the database layer
+func (us *UserService) Update(user *User) error {
+	user.TokenHash = us.hmac.Hash(user.Token)
+	return us.db.Update(user)
+}
+
+// Authenticate checks validity of email and passowrd
+// If the email provided is invalid, it returns 
+//   nil, ErrNotFound
+// If the password provided is invalid, it returns
+//   nil, ErrInvalidPassword
+// If all is valid, it returns
+//   user, nil
+// Otherwise, it returns whatever error arises
+//   nil, error
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	foundUser, err := us.db.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(foundUser.PasswordHash),
+		[]byte(password))
+	switch err {
+	case nil:
+		return foundUser, nil
+	case bcrypt.ErrMismatchedHashAndPassword:
+		return nil, ErrInvalidPassword
+	default:
+		return nil, err
+	}
+}
+
+
+
+//
+// 2. UserDB methods
+//
+
+// We define several errors that may arise manipulating users
 var (
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
@@ -99,6 +154,27 @@ func first(db *gorm.DB, dst interface{}) error {
 		return ErrNotFound
 	}
 	return err
+}
+
+// Create takes a User object and writes it to the database.
+// If this results in an error, it returns it.
+func (ug *userGorm) Create(user *User) error {
+		return ug.db.Create(user).Error
+}
+
+// Update will update the provided user with all of the data
+// in the provided user object.
+func (ug *userGorm) Update(user *User) error {
+	return ug.db.Save(user).Error
+}
+
+// Delete will delete the user with the provided ID
+func (ug *userGorm) Delete(id uint) error {
+	if id == 0 {
+		return ErrInvalidID
+	}
+	user := User{Model: gorm.Model{ID: id}}
+	return ug.db.Delete(&user).Error
 }
 
 // ByID will look up a user with the provided ID.
@@ -125,54 +201,9 @@ func (ug *userGorm) ByID(id uint) (*User, error) {
 // ByEmail looks up a user with the given email address and
 // returns that user.
 // Error returns are the same as ByID
-
 func (ug *userGorm) ByEmail(email string) (*User, error) {
 	var user User
 	db := ug.db.Where("email = ?", email)
 	err := first(db, &user)
 	return &user, err
 }
-
-// Authenticate checks validity of email and passowrd
-// If the email provided is invalid, it returns 
-//   nil, ErrNotFound
-// If the password provided is invalid, it returns
-//   nil, ErrInvalidPassword
-// If all is valid, it returns
-//   user, nil
-// Otherwise, it returns whatever error arises
-//   nil, error
-func (us *UserService) Authenticate(email, password string) (*User, error) {
-	foundUser, err := us.ByEmail(email)
-	if err != nil {
-		return nil, err
-	}
-	
-	err = bcrypt.CompareHashAndPassword(
-		[]byte(foundUser.PasswordHash),
-		[]byte(password))
-	switch err {
-	case nil:
-		return foundUser, nil
-	case bcrypt.ErrMismatchedHashAndPassword:
-		return nil, ErrInvalidPassword
-	default:
-		return nil, err
-	}
-}
-
-// Update will update the provided user with all of the data
-// in the provided user object.
-func (ug *userGorm) Update(user *User) error {
-	return ug.db.Save(user).Error
-}
-
-// Delete will delete the user with the provided ID
-func (ug *userGorm) Delete(id uint) error {
-	if id == 0 {
-		return ErrInvalidID
-	}
-	user := User{Model: gorm.Model{ID: id}}
-	return ug.db.Delete(&user).Error
-}
-

@@ -8,17 +8,19 @@ import (
 
 	"gastb.ar/views"
 	"gastb.ar/models"
+	"gastb.ar/rand"
 )
 
-// UsersController :::viewing of signup and login pages and storage and
-// retrieval of information from user database. Users 
-
+// UsersController:
+// 1. calls the view layer when receiving GET requests on /signup and /login,
+// 2. calls the model layer when information is POSTed to /signup and /login. 
 type UsersController struct {
 	SignupView *views.View
 	LoginView  *views.View
 	us         *models.UserService
 }
 
+// NewUsers creates a new controller on top of an initialized UserService.
 func NewUsers(us *models.UserService) *UsersController {
 	return &UsersController {
 		SignupView: views.NewView("bootstrap", "users/new"),
@@ -26,6 +28,8 @@ func NewUsers(us *models.UserService) *UsersController {
 		us:         us,
 	}
 }
+
+// Form objects and funcitons:
 
 type SignupForm struct {
 	Name string `schema:"name"`
@@ -49,24 +53,25 @@ func parseForm(r *http.Request, dst interface{}) error {
 	return nil
 }
 
-// Create is a handlefunc used to process POST requests on the signup form 
+// Signup is a handlefunc used to process POST requests on the signup form 
 // when a user enters their name, email and password
-func (u *UsersController) Create(w http.ResponseWriter,r *http.Request) {
+func (u *UsersController) Signup(w http.ResponseWriter,r *http.Request) {
 	var form SignupForm
 	if err := parseForm(r, &form); err != nil {
 		panic(err)
 	}
-	user := models.User{
+	user := &models.User{
 		Name:     form.Name,
 		Email:    form.Email,
 		Password: form.Password,
 	}
 
-	if err := u.us.Create(&user); err != nil{
+	if err := u.us.Create(user); err != nil{
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Fprintln(w, "User is", user)
+	
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 // Login is is a handler used to process POST requests on the login form when
@@ -88,21 +93,43 @@ func (u *UsersController) Login(w http.ResponseWriter, r *http.Request) {
 		}
 	return
 	}
+	u.signIn(w, user)
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// signIn is a method that creates a token, sets it to the user, and
+// sets a Cookie header on the ResponseWriter. It returns an error if 
+// setting the user was not successful, or generating the token failed
+func (u *UsersController) signIn(w http.ResponseWriter, user *models.User) error {
+	token, err := rand.RememberToken()
+	if err != nil {
+		return err
+	}
+	user.Token = token
+	err = u.us.Update(user)
+	if err != nil {
+		return err
+	}
+
 	cookie := http.Cookie {
-		Name:     "email",
-		Value:    user.Email,
+		Name:     "remember_token",
+		Value:    token,
 		HttpOnly: true,
 	}
-	http.SetCookie(w,&cookie)
-	fmt.Fprintln(w,user)
+	http.SetCookie(w, &cookie)
+	return nil
 }
 
 // CookieTest is used to display cookies set on the current user
 func (u *UsersController) CookieTest(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("email")
+	cookie, err := r.Cookie("remember_token")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Fprintln(w, "You do not have a cookie :(")
 		return
 	}
-	fmt.Fprintln(w, "Email is:", cookie.Value)
+	fmt.Fprintln(w, "You have a cookie!")
+	fmt.Fprintln(w, cookie.Value)
 }
+
+

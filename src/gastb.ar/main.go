@@ -14,9 +14,10 @@ func main() {
 	// Config information
 	cfg := DefaultConfig()
 	psqlInfo := DefaultPostgresConfig().ConnectionInfo()
-	
+	hmacSecretKey := cfg.HMAC
+
 	// Connect to database
-	services, err := models.NewServices(psqlInfo)
+	services, err := models.NewServices(psqlInfo,hmacSecretKey)
 	if err != nil {
 		panic(err)
 	}
@@ -34,9 +35,10 @@ func main() {
 	router.Handle("/contact", staticC.Contact).Methods("GET")
 	router.Handle("/signup", usersC.SignupView).Methods("GET")
 	router.Handle("/login", usersC.LoginView).Methods("GET")
+
 	router.HandleFunc("/cookietest",usersC.CookieTest).Methods("GET")
 	
-	router.HandleFunc("/signup", usersC.Create).Methods("POST")
+	router.HandleFunc("/signup", usersC.Signup).Methods("POST")
 	router.HandleFunc("/login",usersC.Login).Methods("POST")
 
 	http.ListenAndServe(fmt.Sprintf(":%d",cfg.Port), router)
