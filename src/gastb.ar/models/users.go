@@ -29,8 +29,6 @@ type User struct {
 // user found returns nil error;
 // user not found returns ErrNotFound;
 // other errors may also be returned if they arise. 
-//
-// These "other errors" will result in a 500 error.
 type UserDB interface {
 	//Query methods
 	ByID(id uint)                 (*User, error)
@@ -55,7 +53,6 @@ var _ UserDB = &userGorm{}
 // Checks to see if userGorm is correctly implemented; otherwise code
 // does not compile.
 
-
 // UserService wraps the UserDB implementation and implements non-database
 // related services.
 type UserService struct {
@@ -64,7 +61,7 @@ type UserService struct {
 }
 
 //
-// 1. UserService related methods and functions
+// 1. UserService methods and related functions
 //
 
 // NewUserService instatiates a UserService on a database connection and
@@ -137,7 +134,7 @@ func (us *UserService) ByToken(token string) (*User, error) {
 }
 
 //
-// 2. UserDB methods
+// 2. UserDB methods and related functions
 //
 
 // We define several errors that may arise manipulating users
