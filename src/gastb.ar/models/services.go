@@ -3,7 +3,6 @@ package models
 import "github.com/jinzhu/gorm"
 
 type Services struct {
-	StocklistService
 	*UserService
 	db        *gorm.DB
 }
@@ -17,7 +16,6 @@ func NewServices(connectionInfo string, hmacSecretKey string) (*Services, error)
 
 	return &Services {
 		UserService:      NewUserService(db, hmacSecretKey),
-		StocklistService: &stocklistGorm{},
 		db:               db,
 	}, nil
 }

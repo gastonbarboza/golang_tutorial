@@ -1,7 +1,6 @@
 # Go web app with user service
 Built following Jonathan Calhoun's "Web Development with Go".
-Only currently working feature is a user database, and 
-a stocklist service is being implemented.
+Only currently working feature is a user database. 
 
 Server is layered in a model-view-controller pattern. 
 Homepage is served by a static controller and user-related pages 
